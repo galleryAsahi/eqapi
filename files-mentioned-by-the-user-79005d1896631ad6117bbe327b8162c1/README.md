@@ -2,14 +2,6 @@
 
 P2PQuake の `codes=551` 履歴レスポンスを取得し、市町村ごと震度以上に集約して返す API です。
 
-## 起動
-
-```bat
-npm.cmd start
-```
-
-起動後は `http://localhost:3000/api/intensities` を開きます。
-
 ## 返却内容
 
 トップレベル:
