@@ -89,6 +89,17 @@ export function summarizeEvent(event, stationIndexes) {
         areaIndex.get(areaLookupKey("", point.addr));
 
       if (area) {
+        const areaAsCity = {
+          ...area,
+          key: `area:${area.key}`,
+        };
+        cityMax.set(
+          areaAsCity.key,
+          keepMaxScale(cityMax.get(areaAsCity.key), {
+            ...areaAsCity,
+            scale: point.scale,
+          }),
+        );
         areaMax.set(
           area.key,
           keepMaxScale(areaMax.get(area.key), {
