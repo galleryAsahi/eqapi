@@ -13,24 +13,7 @@ const STATIONS_PATH = path.join(
   "stations.json",
 );
 
-const SCALE_LABELS = new Map([
-  [-1, "不明"],
-  [10, "1"],
-  [20, "2"],
-  [30, "3"],
-  [40, "4"],
-  [45, "5弱"],
-  [50, "5強"],
-  [55, "6弱"],
-  [60, "6強"],
-  [70, "7"],
-]);
-
 let stationIndexesPromise;
-
-function scaleLabel(scale) {
-  return SCALE_LABELS.get(scale) || String(scale);
-}
 
 function areaLookupKey(pref, areaName) {
   return `${pref || ""}\u0000${areaName}`;
@@ -52,6 +35,7 @@ async function loadStationIndexes() {
           name: station.area.name,
           pref: station.pref.name,
         };
+
         areaIndex.set(areaLookupKey(station.pref.name, station.area.name), area);
 
         if (!areaIndex.has(areaLookupKey("", station.area.name))) {
@@ -74,14 +58,12 @@ function keepMaxScale(current, candidate) {
   return current;
 }
 
-function toIntensityRecord({ key, name, code, pref, scale, city, area }) {
+function toIntensityRecord({ key, name, code, pref, scale }) {
   return {
     code,
     name,
     pref,
     scale,
-    ...(city ? { city } : {}),
-    ...(area ? { area } : {}),
     key,
   };
 }
@@ -92,7 +74,7 @@ function sortedIntensities(records) {
     .sort((a, b) => b.scale - a.scale || a.key.localeCompare(b.key, "ja"));
 }
 
-export function enrichEvent(event, stationIndexes) {
+export function summarizeEvent(event, stationIndexes) {
   const stationIndex = stationIndexes.stationIndex || stationIndexes;
   const areaIndex = stationIndexes.areaIndex || new Map();
   const cityMax = new Map();
@@ -147,11 +129,22 @@ export function enrichEvent(event, stationIndexes) {
   const { points, ...eventWithoutPoints } = event;
 
   return {
-    ...eventWithoutPoints,
-    localIntensities: {
-      cityMaxIntensities: sortedIntensities(cityMax),
-      areaMaxIntensities: sortedIntensities(areaMax),
-    },
+    event: eventWithoutPoints,
+    cityMaxIntensities: sortedIntensities(cityMax),
+    areaMaxIntensities: sortedIntensities(areaMax),
+  };
+}
+
+export const enrichEvent = summarizeEvent;
+
+function publicResponse(summary) {
+  return {
+    sourse: "p2pquake",
+    instisourse: "気象庁",
+    generatedAt: new Date().toISOString(),
+    event: summary.event,
+    cityMaxIntensities: summary.cityMaxIntensities,
+    areaMaxIntensities: summary.areaMaxIntensities,
   };
 }
 
@@ -169,14 +162,10 @@ export async function buildResponse(sourceUrl = DEFAULT_SOURCE_URL) {
   }
 
   const payload = await response.json();
-  const events = Array.isArray(payload) ? payload : [payload];
+  const event = Array.isArray(payload) ? payload[0] : payload;
+  const summary = summarizeEvent(event || {}, stationIndexes);
 
-  return {
-    sourse: "p2pquake",
-    instisourse: "気象庁",
-    generatedAt: new Date().toISOString(),
-    events: events.map((event) => enrichEvent(event, stationIndexes)),
-  };
+  return publicResponse(summary);
 }
 
 function sendJson(res, statusCode, body) {
@@ -188,6 +177,31 @@ function sendJson(res, statusCode, body) {
     "access-control-allow-headers": "content-type",
   });
   res.end(json);
+}
+
+async function intensityResponse(sourceUrl, pick) {
+  const response = await buildResponse(sourceUrl);
+  if (pick === "cities") {
+    return {
+      sourse: response.sourse,
+      instisourse: response.instisourse,
+      generatedAt: response.generatedAt,
+      event: response.event,
+      cityMaxIntensities: response.cityMaxIntensities,
+    };
+  }
+
+  if (pick === "areas") {
+    return {
+      sourse: response.sourse,
+      instisourse: response.instisourse,
+      generatedAt: response.generatedAt,
+      event: response.event,
+      areaMaxIntensities: response.areaMaxIntensities,
+    };
+  }
+
+  return response;
 }
 
 export function createApiServer() {
@@ -207,7 +221,19 @@ export function createApiServer() {
 
       if (req.method === "GET" && requestUrl.pathname === "/api/intensities") {
         const sourceUrl = requestUrl.searchParams.get("source") || DEFAULT_SOURCE_URL;
-        sendJson(res, 200, await buildResponse(sourceUrl));
+        sendJson(res, 200, await intensityResponse(sourceUrl));
+        return;
+      }
+
+      if (req.method === "GET" && requestUrl.pathname === "/api/city-intensities") {
+        const sourceUrl = requestUrl.searchParams.get("source") || DEFAULT_SOURCE_URL;
+        sendJson(res, 200, await intensityResponse(sourceUrl, "cities"));
+        return;
+      }
+
+      if (req.method === "GET" && requestUrl.pathname === "/api/area-intensities") {
+        const sourceUrl = requestUrl.searchParams.get("source") || DEFAULT_SOURCE_URL;
+        sendJson(res, 200, await intensityResponse(sourceUrl, "areas"));
         return;
       }
 
