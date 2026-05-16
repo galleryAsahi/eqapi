@@ -50,15 +50,15 @@ const enriched = enrichEvent(
 );
 
 assert.equal(enriched.points, undefined);
-assert.deepEqual(enriched.cityMaxIntensities[0], {
+assert.deepEqual(enriched.cityInt[0], {
   code: "0000100",
   name: "City A",
   pref: "Pref A",
   scale: 45,
   key: "0000100",
 });
-assert.equal(enriched.areaMaxIntensities.length, 1);
-assert.equal(enriched.areaMaxIntensities[0].scale, 45);
+assert.equal(enriched.areaInt.length, 1);
+assert.equal(enriched.areaInt[0].scale, 45);
 assert.equal(enriched.unmatchedPoints, undefined);
 
 const intensityFlash = enrichEvent(
@@ -73,8 +73,8 @@ const intensityFlash = enrichEvent(
   { stationIndex, areaIndex },
 );
 
-assert.equal(intensityFlash.cityMaxIntensities.length, 0);
-assert.deepEqual(intensityFlash.areaMaxIntensities[0], {
+assert.equal(intensityFlash.cityInt.length, 0);
+assert.deepEqual(intensityFlash.areaInt[0], {
   code: "001",
   name: "Area A",
   pref: "Pref A",

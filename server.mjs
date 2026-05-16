@@ -130,8 +130,8 @@ export function summarizeEvent(event, stationIndexes) {
 
   return {
     event: eventWithoutPoints,
-    cityMaxIntensities: sortedIntensities(cityMax),
-    areaMaxIntensities: sortedIntensities(areaMax),
+    cityInt: sortedIntensities(cityMax),
+    areaInt: sortedIntensities(areaMax),
   };
 }
 
@@ -143,8 +143,8 @@ function publicResponse(summary) {
     instisourse: "気象庁",
     generatedAt: new Date().toISOString(),
     event: summary.event,
-    cityMaxIntensities: summary.cityMaxIntensities,
-    areaMaxIntensities: summary.areaMaxIntensities,
+    cityInt: summary.cityInt,
+    areaInt: summary.areaInt,
   };
 }
 
@@ -187,7 +187,7 @@ async function intensityResponse(sourceUrl, pick) {
       instisourse: response.instisourse,
       generatedAt: response.generatedAt,
       event: response.event,
-      cityMaxIntensities: response.cityMaxIntensities,
+      cityInt: response.cityInt,
     };
   }
 
@@ -197,7 +197,7 @@ async function intensityResponse(sourceUrl, pick) {
       instisourse: response.instisourse,
       generatedAt: response.generatedAt,
       event: response.event,
-      areaMaxIntensities: response.areaMaxIntensities,
+      areaInt: response.areaInt,
     };
   }
 
